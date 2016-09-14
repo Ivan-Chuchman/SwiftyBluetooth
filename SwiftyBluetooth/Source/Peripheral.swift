@@ -58,6 +58,13 @@ public final class Peripheral {
 
 // MARK: Public
 extension Peripheral {
+    /// The underlying CBPeripheral
+    public var peripheral: CBPeripheral {
+        get {
+            return self.peripheralProxy.cbPeripheral
+        }
+    }
+    
     /// The underlying CBPeripheral identifier
     public var identifier: NSUUID {
         get {
