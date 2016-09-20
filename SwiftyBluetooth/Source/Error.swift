@@ -1,5 +1,5 @@
 //
-//  Error.swift
+//  SBError.swift
 //
 //  Copyright (c) 2016 Jordane Belanger
 //
@@ -23,7 +23,7 @@
 
 import CoreBluetooth
 
-public enum Error: ErrorType {
+public enum SBError: ErrorType {
     case BluetoothUnsupported
     case BluetoothUnauthorized
     case BluetoothPoweredOff

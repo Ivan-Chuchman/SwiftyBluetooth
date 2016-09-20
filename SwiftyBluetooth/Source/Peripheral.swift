@@ -30,7 +30,7 @@ import CoreBluetooth
  
     - PeripheralNameUpdate: Updates to a Peripheral's CBPeripheral name value, userInfo: ["name": String?]
     - PeripheralModifedServices: Update to a peripheral's CBPeripheral services, userInfo: ["invalidatedServices": [CBService]]
-    - CharacteristicValueUpdate: An update to the value of a characteristic you're peripherals is subscribed for updates from, userInfo: ["characteristic": CBCharacteristic, "error": Error?]
+    - CharacteristicValueUpdate: An update to the value of a characteristic you're peripherals is subscribed for updates from, userInfo: ["characteristic": CBCharacteristic, "error": SBError?]
 */
 public enum PeripheralEvent: String {
     case PeripheralNameUpdate
@@ -38,14 +38,14 @@ public enum PeripheralEvent: String {
     case CharacteristicValueUpdate
 }
 
-public typealias ReadRSSIRequestCallback = (RSSI: Int?, error: Error?) -> Void
-public typealias ServiceRequestCallback = (services: [CBService]?, error: Error?) -> Void
-public typealias CharacteristicRequestCallback = (characteristics: [CBCharacteristic]?, error: Error?) -> Void
-public typealias DescriptorRequestCallback = (descriptors: [CBDescriptor]?, error: Error?) -> Void
-public typealias ReadCharacRequestCallback = (data: NSData?, error: Error?) -> Void
-public typealias ReadDescriptorRequestCallback = (value: DescriptorValue?, error: Error?) -> Void
-public typealias WriteRequestCallback = (error: Error?) -> Void
-public typealias UpdateNotificationStateCallback = (isNotifying: Bool?, error: Error?) -> Void
+public typealias ReadRSSIRequestCallback = (RSSI: Int?, error: SBError?) -> Void
+public typealias ServiceRequestCallback = (services: [CBService]?, error: SBError?) -> Void
+public typealias CharacteristicRequestCallback = (characteristics: [CBCharacteristic]?, error: SBError?) -> Void
+public typealias DescriptorRequestCallback = (descriptors: [CBDescriptor]?, error: SBError?) -> Void
+public typealias ReadCharacRequestCallback = (data: NSData?, error: SBError?) -> Void
+public typealias ReadDescriptorRequestCallback = (value: DescriptorValue?, error: SBError?) -> Void
+public typealias WriteRequestCallback = (error: SBError?) -> Void
+public typealias UpdateNotificationStateCallback = (isNotifying: Bool?, error: SBError?) -> Void
 
 /// An interface on top of a CBPeripheral instance used to run CBPeripheral related functions with closures based callbacks instead of the usual CBPeripheralDelegate interface.
 public final class Peripheral {
@@ -115,12 +115,12 @@ extension Peripheral {
     }
     
     /// Connect to the peripheral through Ble to our Central sharedInstance
-    public func connect(completion: (error: Error?) -> Void) {
+    public func connect(completion: (error: SBError?) -> Void) {
         self.peripheralProxy.connect(completion)
     }
     
     /// Disconnect the peripheral from our Central sharedInstance
-    public func disconnect(completion: (error: Error?) -> Void) {
+    public func disconnect(completion: (error: SBError?) -> Void) {
         self.peripheralProxy.disconnect(completion)
     }
     
