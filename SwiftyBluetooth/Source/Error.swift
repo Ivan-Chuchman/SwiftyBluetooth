@@ -23,19 +23,19 @@
 
 import CoreBluetooth
 
-public enum SBError: ErrorType {
-    case BluetoothUnsupported
-    case BluetoothUnauthorized
-    case BluetoothPoweredOff
-    case OperationTimeoutError(operationName: String)
-    case CoreBluetoothError(operationName: String, error: NSError)
-    case InvalidPeripheral
-    case PeripheralFailedToConnectReasonUnknown
-    case PeripheralServiceNotFound(missingServicesUUIDs: [CBUUID])
-    case PeripheralCharacteristicNotFound(missingCharacteristicsUUIDs: [CBUUID])
-    case PeripheralDescriptorsNotFound(missingDescriptorsUUIDs: [CBUUID])
-    case ScanTerminatedUnexpectedly(invalidState: Int) // CBCentralManagerState.rawValue (CBManagerState.rawValue for iOS 10)
-    case InvalidDescriptorValue(descriptor: CBDescriptor)
+public enum SBError: Error {
+    case bluetoothUnsupported
+    case bluetoothUnauthorized
+    case bluetoothPoweredOff
+    case operationTimeoutError(operationName: String)
+    case coreBluetoothError(operationName: String, error: Error)
+    case invalidPeripheral
+    case peripheralFailedToConnectReasonUnknown
+    case peripheralServiceNotFound(missingServicesUUIDs: [CBUUID])
+    case peripheralCharacteristicNotFound(missingCharacteristicsUUIDs: [CBUUID])
+    case peripheralDescriptorsNotFound(missingDescriptorsUUIDs: [CBUUID])
+    case scanTerminatedUnexpectedly(invalidState: Int) // CBCentralManagerState.rawValue (CBManagerState.rawValue for iOS 10)
+    case invalidDescriptorValue(descriptor: CBDescriptor)
     
     public var _domain: String {
         get {
@@ -46,29 +46,29 @@ public enum SBError: ErrorType {
     public var _code: Int {
         get {
             switch self {
-            case .OperationTimeoutError:
+            case .operationTimeoutError:
                 return 100
-            case .CoreBluetoothError:
+            case .coreBluetoothError:
                 return 101
-            case .PeripheralServiceNotFound:
+            case .peripheralServiceNotFound:
                 return 102
-            case .PeripheralCharacteristicNotFound:
+            case .peripheralCharacteristicNotFound:
                 return 103
-            case .PeripheralDescriptorsNotFound:
+            case .peripheralDescriptorsNotFound:
                 return 104
-            case .BluetoothUnsupported:
+            case .bluetoothUnsupported:
                 return 105
-            case .BluetoothUnauthorized:
+            case .bluetoothUnauthorized:
                 return 106
-            case .BluetoothPoweredOff:
+            case .bluetoothPoweredOff:
                 return 107
-            case .InvalidPeripheral:
+            case .invalidPeripheral:
                 return 108
-            case .PeripheralFailedToConnectReasonUnknown:
+            case .peripheralFailedToConnectReasonUnknown:
                 return 109
-            case .ScanTerminatedUnexpectedly:
+            case .scanTerminatedUnexpectedly:
                 return 110
-            case .InvalidDescriptorValue:
+            case .invalidDescriptorValue:
                 return 111
             }
         }
@@ -76,49 +76,49 @@ public enum SBError: ErrorType {
     
     public func NSErrorRepresentation() -> NSError {
         switch self {
-        case .OperationTimeoutError(let operationName):
+        case .operationTimeoutError(let operationName):
             return self.errorWithDescription("SwiftyBluetooth timeout error", failureReason: "Timed out during \"\(operationName)\" operation.")
         
-        case .CoreBluetoothError(let operationName, let cbError):
-            return self.errorWithDescription("CoreBluetooth Error during \(operationName).", failureReason: cbError.description)
+        case .coreBluetoothError(let operationName, let cbError):
+            return self.errorWithDescription("CoreBluetooth Error during \(operationName).", failureReason: cbError.localizedDescription)
         
-        case .PeripheralServiceNotFound(let missingServices):
-            let missingServicesString = missingServices.map { $0.UUIDString }.joinWithSeparator(",")
+        case .peripheralServiceNotFound(let missingServices):
+            let missingServicesString = missingServices.map { $0.uuidString }.joined(separator: ",")
             return self.errorWithDescription("Peripheral Error", failureReason: "Failed to find the service by your operation: \(missingServicesString)")
         
-        case .PeripheralCharacteristicNotFound(let missingCharacs):
-            let missingCharacsString = missingCharacs.map { $0.UUIDString }.joinWithSeparator(",")
+        case .peripheralCharacteristicNotFound(let missingCharacs):
+            let missingCharacsString = missingCharacs.map { $0.uuidString }.joined(separator: ",")
             return self.errorWithDescription("Peripheral Error", failureReason: "Failed to find the characteristics by your operation: \(missingCharacsString)")
         
-        case .PeripheralDescriptorsNotFound(let missingDescriptors):
-            let missingDescriptorsString = missingDescriptors.map { $0.UUIDString }.joinWithSeparator(",")
+        case .peripheralDescriptorsNotFound(let missingDescriptors):
+            let missingDescriptorsString = missingDescriptors.map { $0.uuidString }.joined(separator: ",")
             return self.errorWithDescription("Peripheral Error", failureReason: "Failed to find the descriptor by your operation: \(missingDescriptorsString)")
         
-        case .BluetoothUnsupported:
+        case .bluetoothUnsupported:
             return self.errorWithDescription("Bluetooth unsupported.", failureReason: "Your iOS Device must support Bluetooth to use SwiftyBluetooth.")
         
-        case .BluetoothUnauthorized:
+        case .bluetoothUnauthorized:
             return self.errorWithDescription("Bluetooth unauthorized", failureReason: "Bluetooth must be authorized for your operation to complete.")
         
-        case .BluetoothPoweredOff:
+        case .bluetoothPoweredOff:
             return self.errorWithDescription("Bluetooth powered off", failureReason: "Bluetooth needs to be powered on for your operation to complete.", recoverySuggestion: "Turn on bluetooth in your iOS device's settings.")
         
-        case .InvalidPeripheral:
+        case .invalidPeripheral:
             return self.errorWithDescription("Invalid peripheral", failureReason: "Bluetooth became unreachable while using this Peripheral, the Peripheral must be discovered again to be used.", recoverySuggestion: "Rediscover the Peripheral.")
         
-        case .PeripheralFailedToConnectReasonUnknown:
+        case .peripheralFailedToConnectReasonUnknown:
             return self.errorWithDescription("Failed to connect your Peripheral", failureReason: "Unknown reason")
             
-        case .ScanTerminatedUnexpectedly:
+        case .scanTerminatedUnexpectedly:
             return self.errorWithDescription("Scan terminated unexpectedly", failureReason: "You're iOS device bluetooth was desactivated", recoverySuggestion: "Restart bluetooth and try scanning again")
             
-        case .InvalidDescriptorValue(let descriptor):
+        case .invalidDescriptorValue(let descriptor):
             return self.errorWithDescription("Invalid descriptor value", failureReason: "Unparsable value for descriptor: \(descriptor.description)")
         }
     }
     
-    private func errorWithDescription(description: String, failureReason: String? = nil, recoverySuggestion: String? = nil) -> NSError {
-        var userInfo: [NSObject: AnyObject] = [NSLocalizedDescriptionKey: description]
+    fileprivate func errorWithDescription(_ description: String, failureReason: String? = nil, recoverySuggestion: String? = nil) -> NSError {
+        var userInfo: [AnyHashable: Any] = [NSLocalizedDescriptionKey: description]
         if let failureReason = failureReason {
             userInfo[NSLocalizedFailureReasonErrorKey] = failureReason
         }

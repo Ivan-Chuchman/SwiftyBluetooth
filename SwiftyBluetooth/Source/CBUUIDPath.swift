@@ -30,7 +30,7 @@ struct CBUUIDPath: Hashable {
         var stringPath: String = String()
         
         for uuid in uuids {
-            stringPath.appendContentsOf(uuid.UUIDString)
+            stringPath.append(uuid.uuidString)
         }
         
         self.hash = stringPath.hashValue
@@ -46,17 +46,17 @@ func ==(lhs: CBUUIDPath, rhs: CBUUIDPath) -> Bool {
     return lhs.hashValue == rhs.hashValue
 }
 
-func servicePath(service service: CBUUIDConvertible) -> CBUUIDPath {
+func servicePath(service: CBUUIDConvertible) -> CBUUIDPath {
     return CBUUIDPath(uuids: service.CBUUIDRepresentation)
 }
 
-func characteristicPath(service service: CBUUIDConvertible,
+func characteristicPath(service: CBUUIDConvertible,
                                 characteristic: CBUUIDConvertible) -> CBUUIDPath {
     return CBUUIDPath(uuids: service.CBUUIDRepresentation,
                       characteristic.CBUUIDRepresentation)
 }
 
-func descriptorPath(service service: CBUUIDConvertible,
+func descriptorPath(service: CBUUIDConvertible,
                             characteristic: CBUUIDConvertible,
                             descriptor: CBUUIDConvertible) -> CBUUIDPath {
     return CBUUIDPath(uuids: service.CBUUIDRepresentation,

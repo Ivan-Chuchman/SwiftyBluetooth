@@ -24,12 +24,12 @@
 import CoreBluetooth
 
 final class CentralProxy: NSObject {
-    private lazy var asyncCentralStateCallbacks: [AsyncCentralStateCallback] = []
+    fileprivate lazy var asyncCentralStateCallbacks: [AsyncCentralStateCallback] = []
     
-    private var scanRequest: PeripheralScanRequest?
+    fileprivate var scanRequest: PeripheralScanRequest?
     
-    private lazy var connectRequests: [NSUUID: ConnectPeripheralRequest] = [:]
-    private lazy var disconnectRequests: [NSUUID: DisconnectPeripheralRequest] = [:]
+    fileprivate lazy var connectRequests: [UUID: ConnectPeripheralRequest] = [:]
+    fileprivate lazy var disconnectRequests: [UUID: DisconnectPeripheralRequest] = [:]
     
     let centralManager: CBCentralManager
     
@@ -39,9 +39,9 @@ final class CentralProxy: NSObject {
         self.centralManager.delegate = self
     }
     
-    private func postCentralEvent(event: CentralEvent, userInfo: [NSObject: AnyObject]? = nil) {
-        NSNotificationCenter.defaultCenter().postNotificationName(
-            event.rawValue,
+    fileprivate func postCentralEvent(_ event: CentralEvent, userInfo: [AnyHashable: Any]? = nil) {
+        NotificationCenter.default.post(
+            name: Notification.Name(rawValue: event.rawValue),
             object: Central.sharedInstance,
             userInfo: userInfo)
     }
@@ -49,45 +49,45 @@ final class CentralProxy: NSObject {
 
 // MARK: Initialize Bluetooth requests
 extension CentralProxy {
-    func asyncCentralState(completion: AsyncCentralStateCallback) {
+    func asyncCentralState(_ completion: @escaping AsyncCentralStateCallback) {
         switch centralManager.state {
-        case .Unknown:
+        case .unknown:
             self.asyncCentralStateCallbacks.append(completion)
-        case .Resetting:
+        case .resetting:
             self.asyncCentralStateCallbacks.append(completion)
-        case .Unsupported:
-            completion(state: .Unsupported)
-        case .Unauthorized:
-            completion(state: .Unauthorized)
-        case .PoweredOff:
-            completion(state: .PoweredOff)
-        case .PoweredOn:
-            completion(state: .PoweredOn)
+        case .unsupported:
+            completion(.unsupported)
+        case .unauthorized:
+            completion(.unauthorized)
+        case .poweredOff:
+            completion(.poweredOff)
+        case .poweredOn:
+            completion(.poweredOn)
         }
     }
     
-    func initializeBluetooth(completion: InitializeBluetoothCallback) {
+    func initializeBluetooth(_ completion: @escaping InitializeBluetoothCallback) {
         self.asyncCentralState { (state) in
             switch state {
-            case .Unsupported:
-                completion(error: .BluetoothUnsupported)
-            case .Unauthorized:
-                completion(error: .BluetoothUnauthorized)
-            case .PoweredOff:
-                completion(error: .BluetoothPoweredOff)
-            case .PoweredOn:
-                completion(error: nil)
+            case .unsupported:
+                completion(.bluetoothUnsupported)
+            case .unauthorized:
+                completion(.bluetoothUnauthorized)
+            case .poweredOff:
+                completion(.bluetoothPoweredOff)
+            case .poweredOn:
+                completion(nil)
             }
         }
     }
     
-    func callAsyncCentralStateCallback(state: AsyncCentralState) {
+    func callAsyncCentralStateCallback(_ state: AsyncCentralState) {
         let callbacks = self.asyncCentralStateCallbacks
         
         self.asyncCentralStateCallbacks.removeAll()
         
         for callback in callbacks {
-            callback(state: state)
+            callback(state)
         }
     }
 }
@@ -96,16 +96,16 @@ extension CentralProxy {
 private final class PeripheralScanRequest {
     let callback: PeripheralScanCallback
     
-    init(callback: PeripheralScanCallback) {
+    init(callback: @escaping PeripheralScanCallback) {
         self.callback = callback
     }
 }
 
 extension CentralProxy {
-    func scanWithTimeout(timeout: NSTimeInterval, serviceUUIDs: [CBUUID]?, _ callback: PeripheralScanCallback) {
+    func scanWithTimeout(_ timeout: TimeInterval, serviceUUIDs: [CBUUID]?, _ callback: @escaping PeripheralScanCallback) {
         initializeBluetooth { [unowned self] (error) in
             if let error = error {
-                callback(scanResult: PeripheralScanResult.ScanStopped(error: error))
+                callback(PeripheralScanResult.scanStopped(error: error))
             } else {
                 if self.scanRequest != nil {
                     self.centralManager.stopScan()
@@ -114,11 +114,11 @@ extension CentralProxy {
                 let scanRequest = PeripheralScanRequest(callback: callback)
                 self.scanRequest = scanRequest
                 
-                scanRequest.callback(scanResult: .ScanStarted)
-                self.centralManager.scanForPeripheralsWithServices(serviceUUIDs, options: nil)
+                scanRequest.callback(.scanStarted)
+                self.centralManager.scanForPeripherals(withServices: serviceUUIDs, options: nil)
                 
-                NSTimer.scheduledTimerWithTimeInterval(
-                    timeout,
+                Timer.scheduledTimer(
+                    timeInterval: timeout,
                     target: self,
                     selector: #selector(self.onScanTimerTick),
                     userInfo: Weak(value: scanRequest),
@@ -127,18 +127,18 @@ extension CentralProxy {
         }
     }
     
-    func stopScan(error: SBError? = nil) {
+    func stopScan(_ error: SBError? = nil) {
         self.centralManager.stopScan()
         if let scanRequest = self.scanRequest {
             self.scanRequest = nil
-            scanRequest.callback(scanResult: .ScanStopped(error: error))
+            scanRequest.callback(.scanStopped(error: error))
         }
     }
     
-    @objc private func onScanTimerTick(timer: NSTimer) {
+    @objc fileprivate func onScanTimerTick(_ timer: Timer) {
         
         defer {
-            if timer.valid { timer.invalidate() }
+            if timer.isValid { timer.invalidate() }
         }
         
         let weakRequest = timer.userInfo as! Weak<PeripheralScanRequest>
@@ -155,31 +155,31 @@ private final class ConnectPeripheralRequest {
     
     let peripheral: CBPeripheral
     
-    init(peripheral: CBPeripheral, callback: PeripheralConnectCallback) {
+    init(peripheral: CBPeripheral, callback: @escaping PeripheralConnectCallback) {
         self.callbacks.append(callback)
         
         self.peripheral = peripheral
     }
     
-    func invokeCallbacks(error: SBError?) {
+    func invokeCallbacks(_ error: SBError?) {
         for callback in callbacks {
-            callback(error: error)
+            callback(error)
         }
     }
 }
 
 extension CentralProxy {
-    func connectPeripheral(peripheral: CBPeripheral, timeout: NSTimeInterval, _ callback: (error: SBError?) -> Void) {
+    func connectPeripheral(_ peripheral: CBPeripheral, timeout: TimeInterval, _ callback: @escaping (_ error: SBError?) -> Void) {
         initializeBluetooth { [unowned self] (error) in
             if let error = error {
-                callback(error: error)
+                callback(error)
                 return
             }
             
             let uuid = peripheral.identifier
             
-            if let cbPeripheral = self.centralManager.retrievePeripheralsWithIdentifiers([uuid]).first where cbPeripheral.state == .Connected {
-                callback(error: nil)
+            if let cbPeripheral = self.centralManager.retrievePeripherals(withIdentifiers: [uuid]).first , cbPeripheral.state == .connected {
+                callback(nil)
                 return
             }
             
@@ -189,9 +189,9 @@ extension CentralProxy {
                 let request = ConnectPeripheralRequest(peripheral: peripheral, callback: callback)
                 self.connectRequests[uuid] = request
                 
-                self.centralManager.connectPeripheral(peripheral, options: nil)
-                NSTimer.scheduledTimerWithTimeInterval(
-                    timeout,
+                self.centralManager.connect(peripheral, options: nil)
+                Timer.scheduledTimer(
+                    timeInterval: timeout,
                     target: self,
                     selector: #selector(self.onConnectTimerTick),
                     userInfo: Weak(value: request),
@@ -200,9 +200,9 @@ extension CentralProxy {
         }
     }
     
-    @objc private func onConnectTimerTick(timer: NSTimer) {
+    @objc fileprivate func onConnectTimerTick(_ timer: Timer) {
         defer {
-            if timer.valid { timer.invalidate() }
+            if timer.isValid { timer.invalidate() }
         }
         
         let weakRequest = timer.userInfo as! Weak<ConnectPeripheralRequest>
@@ -214,7 +214,7 @@ extension CentralProxy {
         
         self.connectRequests[uuid] = nil
         
-        request.invokeCallbacks(SBError.OperationTimeoutError(operationName: "connect peripheral"))
+        request.invokeCallbacks(SBError.operationTimeoutError(operationName: "connect peripheral"))
     }
 }
 
@@ -224,33 +224,33 @@ private final class DisconnectPeripheralRequest {
     
     let peripheral: CBPeripheral
     
-    init(peripheral: CBPeripheral, callback: PeripheralDisconnectCallback) {
+    init(peripheral: CBPeripheral, callback: @escaping PeripheralDisconnectCallback) {
         self.callbacks.append(callback)
         
         self.peripheral = peripheral
     }
     
-    func invokeCallbacks(error: SBError?) {
+    func invokeCallbacks(_ error: SBError?) {
         for callback in callbacks {
-            callback(error: error)
+            callback(error)
         }
     }
 }
 
 extension CentralProxy {
-    func disconnectPeripheral(peripheral: CBPeripheral, timeout: NSTimeInterval, _ callback: (error: SBError?) -> Void) {
+    func disconnectPeripheral(_ peripheral: CBPeripheral, timeout: TimeInterval, _ callback: @escaping (_ error: SBError?) -> Void) {
         initializeBluetooth { [unowned self] (error) in
             
             if let error = error {
-                callback(error: error)
+                callback(error)
                 return
             }
             
             let uuid = peripheral.identifier
             
-            if let cbPeripheral = self.centralManager.retrievePeripheralsWithIdentifiers([uuid]).first
-                where (cbPeripheral.state == .Disconnected || cbPeripheral.state == .Disconnecting) {
-                callback(error: nil)
+            if let cbPeripheral = self.centralManager.retrievePeripherals(withIdentifiers: [uuid]).first
+                , (cbPeripheral.state == .disconnected || cbPeripheral.state == .disconnecting) {
+                callback(nil)
                 return
             }
             
@@ -261,8 +261,8 @@ extension CentralProxy {
                 self.disconnectRequests[uuid] = request
                 
                 self.centralManager.cancelPeripheralConnection(peripheral)
-                NSTimer.scheduledTimerWithTimeInterval(
-                    timeout,
+                Timer.scheduledTimer(
+                    timeInterval: timeout,
                     target: self,
                     selector: #selector(self.onDisconnectTimerTick),
                     userInfo: Weak(value: request),
@@ -271,9 +271,9 @@ extension CentralProxy {
         }
     }
     
-    @objc private func onDisconnectTimerTick(timer: NSTimer) {
+    @objc fileprivate func onDisconnectTimerTick(_ timer: Timer) {
         defer {
-            if timer.valid { timer.invalidate() }
+            if timer.isValid { timer.invalidate() }
         }
         
         let weakRequest = timer.userInfo as! Weak<DisconnectPeripheralRequest>
@@ -285,35 +285,35 @@ extension CentralProxy {
         
         self.disconnectRequests[uuid] = nil
         
-        request.invokeCallbacks(SBError.OperationTimeoutError(operationName: "disconnect peripheral"))
+        request.invokeCallbacks(SBError.operationTimeoutError(operationName: "disconnect peripheral"))
     }
 }
 
 extension CentralProxy: CBCentralManagerDelegate {
-    @objc func centralManagerDidUpdateState(central: CBCentralManager) {
+    @objc func centralManagerDidUpdateState(_ central: CBCentralManager) {
         self.postCentralEvent(.CentralStateChange, userInfo: ["state": Box(value: central.state)])
         switch centralManager.state.rawValue {
             case 0: //.Unknown:
-                self.stopScan(SBError.ScanTerminatedUnexpectedly(invalidState: centralManager.state.rawValue))
+                self.stopScan(SBError.scanTerminatedUnexpectedly(invalidState: centralManager.state.rawValue))
             case 1: //.Resetting:
-                self.stopScan(SBError.ScanTerminatedUnexpectedly(invalidState: centralManager.state.rawValue))
+                self.stopScan(SBError.scanTerminatedUnexpectedly(invalidState: centralManager.state.rawValue))
             case 2: //.Unsupported:
-                self.callAsyncCentralStateCallback(.Unsupported)
-                self.stopScan(SBError.ScanTerminatedUnexpectedly(invalidState: centralManager.state.rawValue))
+                self.callAsyncCentralStateCallback(.unsupported)
+                self.stopScan(SBError.scanTerminatedUnexpectedly(invalidState: centralManager.state.rawValue))
             case 3: //.Unauthorized:
-                self.callAsyncCentralStateCallback(.Unauthorized)
-                self.stopScan(SBError.ScanTerminatedUnexpectedly(invalidState: centralManager.state.rawValue))
+                self.callAsyncCentralStateCallback(.unauthorized)
+                self.stopScan(SBError.scanTerminatedUnexpectedly(invalidState: centralManager.state.rawValue))
             case 4: //.PoweredOff:
-                self.callAsyncCentralStateCallback(.PoweredOff)
-                self.stopScan(SBError.ScanTerminatedUnexpectedly(invalidState: centralManager.state.rawValue))
+                self.callAsyncCentralStateCallback(.poweredOff)
+                self.stopScan(SBError.scanTerminatedUnexpectedly(invalidState: centralManager.state.rawValue))
             case 5: //.PoweredOn:
-                self.callAsyncCentralStateCallback(.PoweredOn)
+                self.callAsyncCentralStateCallback(.poweredOn)
             default:
                 break
         }
     }
     
-    @objc func centralManager(central: CBCentralManager, didConnectPeripheral peripheral: CBPeripheral) {
+    @objc func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
         let uuid = peripheral.identifier
         guard let request = self.connectRequests[uuid] else {
             return
@@ -324,7 +324,7 @@ extension CentralProxy: CBCentralManagerDelegate {
         request.invokeCallbacks(nil)
     }
     
-    @objc func centralManager(central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: NSError?) {
+    @objc func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
         let uuid = peripheral.identifier
         guard let request = self.disconnectRequests[uuid] else {
             return
@@ -334,13 +334,13 @@ extension CentralProxy: CBCentralManagerDelegate {
         
         var swiftyError: SBError?
         if let error = error {
-            swiftyError = SBError.CoreBluetoothError(operationName: "disconnect peripheral", error: error)
+            swiftyError = SBError.coreBluetoothError(operationName: "disconnect peripheral", error: error)
         }
         
         request.invokeCallbacks(swiftyError)
     }
     
-    @objc func centralManager(central: CBCentralManager, didFailToConnectPeripheral peripheral: CBPeripheral, error: NSError?) {
+    @objc func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
         let uuid = peripheral.identifier
         guard let request = self.connectRequests[uuid] else {
             return
@@ -348,9 +348,9 @@ extension CentralProxy: CBCentralManagerDelegate {
         
         var swiftyError: SBError?
         if let error = error {
-            swiftyError = .CoreBluetoothError(operationName: "connect peripheral", error: error)
+            swiftyError = .coreBluetoothError(operationName: "connect peripheral", error: error)
         } else {
-            swiftyError = SBError.PeripheralFailedToConnectReasonUnknown
+            swiftyError = SBError.peripheralFailedToConnectReasonUnknown
         }
         
         self.connectRequests[uuid] = nil
@@ -358,7 +358,7 @@ extension CentralProxy: CBCentralManagerDelegate {
         request.invokeCallbacks(swiftyError)
     }
     
-    @objc func centralManager(central: CBCentralManager, didDiscoverPeripheral peripheral: CBPeripheral, advertisementData: [String : AnyObject], RSSI: NSNumber) {
+    @objc func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {
         
         guard let scanRequest = scanRequest else {
             return
@@ -366,10 +366,10 @@ extension CentralProxy: CBCentralManagerDelegate {
         
         let peripheral = Peripheral(peripheral: peripheral)
         
-        scanRequest.callback(scanResult: .ScanResult(peripheral: peripheral, advertisementData: advertisementData, RSSI: RSSI))
+        scanRequest.callback(.scanResult(peripheral: peripheral, advertisementData: advertisementData as [String : AnyObject], RSSI: RSSI))
     }
     
-    @objc func centralManager(central: CBCentralManager, willRestoreState dict: [String : AnyObject]) {
+    @objc func centralManager(_ central: CBCentralManager, willRestoreState dict: [String : Any]) {
         self.postCentralEvent(.CentralManagerWillRestoreState, userInfo: dict)
     }
 }

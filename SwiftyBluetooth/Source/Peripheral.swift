@@ -22,6 +22,26 @@
 //  SOFTWARE.
 
 import CoreBluetooth
+fileprivate func < <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
+  switch (lhs, rhs) {
+  case let (l?, r?):
+    return l < r
+  case (nil, _?):
+    return true
+  default:
+    return false
+  }
+}
+
+fileprivate func > <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
+  switch (lhs, rhs) {
+  case let (l?, r?):
+    return l > r
+  default:
+    return rhs < lhs
+  }
+}
+
 
 /**
     The Peripheral notifications sent through the default 'NSNotificationCenter' by Peripherals.
@@ -38,18 +58,18 @@ public enum PeripheralEvent: String {
     case CharacteristicValueUpdate
 }
 
-public typealias ReadRSSIRequestCallback = (RSSI: Int?, error: SBError?) -> Void
-public typealias ServiceRequestCallback = (services: [CBService]?, error: SBError?) -> Void
-public typealias CharacteristicRequestCallback = (characteristics: [CBCharacteristic]?, error: SBError?) -> Void
-public typealias DescriptorRequestCallback = (descriptors: [CBDescriptor]?, error: SBError?) -> Void
-public typealias ReadCharacRequestCallback = (data: NSData?, error: SBError?) -> Void
-public typealias ReadDescriptorRequestCallback = (value: DescriptorValue?, error: SBError?) -> Void
-public typealias WriteRequestCallback = (error: SBError?) -> Void
-public typealias UpdateNotificationStateCallback = (isNotifying: Bool?, error: SBError?) -> Void
+public typealias ReadRSSIRequestCallback = (_ RSSI: Int?, _ error: SBError?) -> Void
+public typealias ServiceRequestCallback = (_ services: [CBService]?, _ error: SBError?) -> Void
+public typealias CharacteristicRequestCallback = (_ characteristics: [CBCharacteristic]?, _ error: SBError?) -> Void
+public typealias DescriptorRequestCallback = (_ descriptors: [CBDescriptor]?, _ error: SBError?) -> Void
+public typealias ReadCharacRequestCallback = (_ data: Data?, _ error: SBError?) -> Void
+public typealias ReadDescriptorRequestCallback = (_ value: DescriptorValue?, _ error: SBError?) -> Void
+public typealias WriteRequestCallback = (_ error: SBError?) -> Void
+public typealias UpdateNotificationStateCallback = (_ isNotifying: Bool?, _ error: SBError?) -> Void
 
 /// An interface on top of a CBPeripheral instance used to run CBPeripheral related functions with closures based callbacks instead of the usual CBPeripheralDelegate interface.
 public final class Peripheral {
-    private var peripheralProxy: PeripheralProxy!
+    fileprivate var peripheralProxy: PeripheralProxy!
     
     init(peripheral: CBPeripheral) {
         self.peripheralProxy = PeripheralProxy(cbPeripheral: peripheral, peripheral: self)
@@ -66,7 +86,7 @@ extension Peripheral {
     }
     
     /// The underlying CBPeripheral identifier
-    public var identifier: NSUUID {
+    public var identifier: UUID {
         get {
             return self.peripheralProxy.cbPeripheral.identifier
         }
@@ -94,20 +114,20 @@ extension Peripheral {
     }
     
     /// Returns the service requested if it exists and has been discovered
-    public func serviceWithUUID(serviceUUID: CBUUIDConvertible) -> CBService? {
+    public func serviceWithUUID(_ serviceUUID: CBUUIDConvertible) -> CBService? {
         return self.peripheralProxy.cbPeripheral
             .serviceWithUUID(serviceUUID.CBUUIDRepresentation)
     }
     
     /// Returns the characteristic requested if it exists and has been discovered
-    public func characteristicWithUUID(characUUID: CBUUIDConvertible, serviceUUID: CBUUIDConvertible) -> CBCharacteristic? {
+    public func characteristicWithUUID(_ characUUID: CBUUIDConvertible, serviceUUID: CBUUIDConvertible) -> CBCharacteristic? {
         return self.peripheralProxy.cbPeripheral
             .serviceWithUUID(serviceUUID.CBUUIDRepresentation)?
             .characteristicWithUUID(characUUID.CBUUIDRepresentation)
     }
     
     /// Returns the descriptor requested if it exists and has been discovered
-    public func descriptorWithUUID(descriptorUUID: CBUUIDConvertible, characUUID: CBUUIDConvertible, serviceUUID: CBUUIDConvertible) -> CBDescriptor? {
+    public func descriptorWithUUID(_ descriptorUUID: CBUUIDConvertible, characUUID: CBUUIDConvertible, serviceUUID: CBUUIDConvertible) -> CBDescriptor? {
         return self.peripheralProxy.cbPeripheral
             .serviceWithUUID(serviceUUID.CBUUIDRepresentation)?
             .characteristicWithUUID(characUUID.CBUUIDRepresentation)?
@@ -115,19 +135,19 @@ extension Peripheral {
     }
     
     /// Connect to the peripheral through Ble to our Central sharedInstance
-    public func connect(completion: (error: SBError?) -> Void) {
+    public func connect(_ completion: @escaping (_ error: SBError?) -> Void) {
         self.peripheralProxy.connect(completion)
     }
     
     /// Disconnect the peripheral from our Central sharedInstance
-    public func disconnect(completion: (error: SBError?) -> Void) {
+    public func disconnect(_ completion: @escaping (_ error: SBError?) -> Void) {
         self.peripheralProxy.disconnect(completion)
     }
     
     /// Connects to the peripheral and update the Peripheral's RSSI through a 'CBPeripheral' readRSSI() function call
     ///
     /// - Parameter completion: A closure containing the integer value of the updated RSSI or an error.
-    public func readRSSI(completion: ReadRSSIRequestCallback) {
+    public func readRSSI(_ completion: @escaping ReadRSSIRequestCallback) {
         self.peripheralProxy.readRSSI(completion)
     }
     
@@ -135,8 +155,8 @@ extension Peripheral {
     ///
     /// - Parameter serviceUUIDs: The UUIDs of the services you want to discover or nil if you want to discover all services.
     /// - Parameter completion: A closures containing an array of the services found or an error.
-    public func discoverServices(serviceUUIDs serviceUUIDs: [CBUUIDConvertible]?,
-                                 completion: ServiceRequestCallback)
+    public func discoverServices(serviceUUIDs: [CBUUIDConvertible]?,
+                                 completion: @escaping ServiceRequestCallback)
     {
         // Passing in an empty array will act the same as if you passed nil and discover all the services.
         // But it is recommended to pass in nil for those cases similarly to how the CoreBluetooth discoverServices method works
@@ -149,9 +169,9 @@ extension Peripheral {
     /// - Parameter serviceUUIDs: The UUIDs of the included services you want to discover or nil if you want to discover all included services.
     /// - Parameter serviceUUID: The service to request included services from.
     /// - Parameter completion: A closures containing an array of the services found or an error.
-    public func discoverIncludedServices(serviceUUIDs serviceUUIDs: [CBUUIDConvertible]?,
+    public func discoverIncludedServices(serviceUUIDs: [CBUUIDConvertible]?,
                                          forService serviceUUID: CBUUIDConvertible,
-                                                    completion: ServiceRequestCallback)
+                                                    completion: @escaping ServiceRequestCallback)
     {
         // Passing in an empty array will act the same as if you passed nil and discover all the services.
         // But it is recommended to pass in nil for those cases similarly to how the CoreBluetooth discoverServices method works
@@ -165,9 +185,9 @@ extension Peripheral {
     /// - Parameter serviceUUID: The UUID of the service of the characteristics requested.
     /// - Parameter characteristicUUIDs: The UUIDs of the characteristics you want to discover or nil if you want to discover all characteristics.
     /// - Parameter completion: A closures containing an array of the characteristics found or an error.
-    public func discoverCharacteristics(characteristicUUIDs characteristicUUIDs: [CBUUIDConvertible]?,
+    public func discoverCharacteristics(characteristicUUIDs: [CBUUIDConvertible]?,
                                         forService serviceUUID: CBUUIDConvertible,
-                                                   completion: CharacteristicRequestCallback)
+                                                   completion: @escaping CharacteristicRequestCallback)
     {
         // Passing in an empty array will act the same as if you passed nil and discover all the characteristics.
         // But it is recommended to pass in nil for those cases similarly to how the CoreBluetooth discoverCharacteristics method works
@@ -181,9 +201,9 @@ extension Peripheral {
     /// - Parameter characteristicUUID: The UUID of the characteristic you want to discover descriptors from.
     /// - Parameter serviceUUID: The UUID of the service of the characteristic above.
     /// - Parameter completion: A closures containing an array of the descriptors found or an error.
-    public func discoverDescriptorsForCharacteristic(characteristicUUID characteristicUUID: CBUUIDConvertible,
+    public func discoverDescriptorsForCharacteristic(characteristicUUID: CBUUIDConvertible,
                                                      serviceUUID: CBUUIDConvertible,
-                                                     completion: DescriptorRequestCallback)
+                                                     completion: @escaping DescriptorRequestCallback)
     {
         self.peripheralProxy.discoverDescriptorsForCharacteristic(characteristicUUID.CBUUIDRepresentation, serviceUUID: serviceUUID.CBUUIDRepresentation, completion: completion)
     }
@@ -194,8 +214,8 @@ extension Peripheral {
     /// - Parameter characteristicUUID: The UUID of the characteristic you want to discover descriptors from.
     /// - Parameter serviceUUID: The UUID of the service of the characteristic above.
     /// - Parameter completion: A closures containing an array of the descriptors found or an error.
-    public func discoverDescriptorsForCharacteristic(characteristic: CBCharacteristic,
-                                                     completion: DescriptorRequestCallback)
+    public func discoverDescriptorsForCharacteristic(_ characteristic: CBCharacteristic,
+                                                     completion: @escaping DescriptorRequestCallback)
     {
         self.discoverDescriptorsForCharacteristic(characteristicUUID: characteristic, serviceUUID: characteristic.service, completion: completion)
     }
@@ -206,9 +226,9 @@ extension Peripheral {
     /// - Parameter characteristicUUID: The UUID of the characteristic you want to read from.
     /// - Parameter serviceUUID: The UUID of the service of the characteristic above.
     /// - Parameter completion: A closures containing the data read or an error.
-    public func readCharacteristicValue(characteristicUUID characteristicUUID: CBUUIDConvertible,
+    public func readCharacteristicValue(characteristicUUID: CBUUIDConvertible,
                                         serviceUUID: CBUUIDConvertible,
-                                        completion: ReadCharacRequestCallback)
+                                        completion: @escaping ReadCharacRequestCallback)
     {
         self.peripheralProxy.readCharacteristic(characteristicUUID.CBUUIDRepresentation,
                                                 serviceUUID: serviceUUID.CBUUIDRepresentation,
@@ -219,8 +239,8 @@ extension Peripheral {
     ///
     /// - Parameter characteristic: The characteristic you want to read from.
     /// - Parameter completion: A closures containing the data read or an error.
-    public func readCharacteristicValue(characteristic: CBCharacteristic,
-                                        completion: ReadCharacRequestCallback)
+    public func readCharacteristicValue(_ characteristic: CBCharacteristic,
+                                        completion: @escaping ReadCharacRequestCallback)
     {
         self.readCharacteristicValue(characteristicUUID: characteristic,
                                      serviceUUID: characteristic.service,
@@ -234,10 +254,10 @@ extension Peripheral {
     /// - Parameter characteristicUUID: The UUID of the descriptor above.
     /// - Parameter serviceUUID: The UUID of the service of the characteristic above.
     /// - Parameter completion: A closures containing the data read or an error.
-    public func readDescriptorValue(descriptorUUID descriptorUUID: CBUUIDConvertible,
+    public func readDescriptorValue(descriptorUUID: CBUUIDConvertible,
                                     characteristicUUID: CBUUIDConvertible,
                                     serviceUUID: CBUUIDConvertible,
-                                    completion: ReadDescriptorRequestCallback)
+                                    completion: @escaping ReadDescriptorRequestCallback)
     {
         self.peripheralProxy.readDescriptor(descriptorUUID.CBUUIDRepresentation,
                                             characteristicUUID: characteristicUUID.CBUUIDRepresentation,
@@ -251,8 +271,8 @@ extension Peripheral {
     /// - Parameter characteristicUUID: The UUID of the descriptor above.
     /// - Parameter serviceUUID: The UUID of the service of the characteristic above.
     /// - Parameter completion: A closures containing the data read or an error.
-    public func readDescriptorValue(descriptor: CBDescriptor,
-                                    completion: ReadDescriptorRequestCallback)
+    public func readDescriptorValue(_ descriptor: CBDescriptor,
+                                    completion: @escaping ReadDescriptorRequestCallback)
     {
         self.readDescriptorValue(descriptorUUID: descriptor,
                                  characteristicUUID: descriptor.characteristic,
@@ -268,11 +288,11 @@ extension Peripheral {
     /// - Parameter value: The data being written to the characteristic
     /// - Parameter type: The type of the CBPeripheral write, wither with or without response in which case the closure is called right away
     /// - Parameter completion: A closures containing an error if something went wrong
-    public func writeCharacteristicValue(characteristicUUID characteristicUUID: CBUUIDConvertible,
+    public func writeCharacteristicValue(characteristicUUID: CBUUIDConvertible,
                                          serviceUUID: CBUUIDConvertible,
-                                         value: NSData,
-                                         type: CBCharacteristicWriteType = .WithResponse,
-                                         completion: WriteRequestCallback)
+                                         value: Data,
+                                         type: CBCharacteristicWriteType = .withResponse,
+                                         completion: @escaping WriteRequestCallback)
     {
         self.peripheralProxy.writeCharacteristicValue(characteristicUUID.CBUUIDRepresentation,
                                                       serviceUUID: serviceUUID.CBUUIDRepresentation,
@@ -287,13 +307,13 @@ extension Peripheral {
     /// - Parameter value: The data being written to the characteristic
     /// - Parameter type: The type of the CBPeripheral write, wither with or without response in which case the closure is called right away
     /// - Parameter completion: A closures containing an error if something went wrong
-    public func writeCharacteristicValue(characteristic: CBCharacteristic,
-                                         value: NSData,
-                                         type: CBCharacteristicWriteType = .WithResponse,
-                                         completion: WriteRequestCallback)
+    public func writeCharacteristicValue(_ characteristic: CBCharacteristic,
+                                         value: Data,
+                                         type: CBCharacteristicWriteType = .withResponse,
+                                         completion: @escaping WriteRequestCallback)
     {
-        self.writeCharacteristicValue(characteristicUUID: characteristic.UUID,
-                                      serviceUUID: characteristic.service.UUID,
+        self.writeCharacteristicValue(characteristicUUID: characteristic.uuid,
+                                      serviceUUID: characteristic.service.uuid,
                                       value: value,
                                       type: type,
                                       completion: completion)
@@ -307,11 +327,11 @@ extension Peripheral {
     /// - Parameter serviceUUID: The UUID of the service of the characteristic above.
     /// - Parameter value: The data being written to the characteristic.
     /// - Parameter completion: A closures containing an error if something went wrong.
-    public func writeDescriptorValue(descriptorUUID descriptorUUID: CBUUIDConvertible,
+    public func writeDescriptorValue(descriptorUUID: CBUUIDConvertible,
                                      characteristicUUID: CBUUIDConvertible,
                                      serviceUUID: CBUUIDConvertible,
-                                     value: NSData,
-                                     completion: WriteRequestCallback)
+                                     value: Data,
+                                     completion: @escaping WriteRequestCallback)
     {
         self.peripheralProxy.writeDescriptorValue(descriptorUUID.CBUUIDRepresentation,
                                                   characteristicUUID: characteristicUUID.CBUUIDRepresentation,
@@ -325,13 +345,13 @@ extension Peripheral {
     /// - Parameter descriptor: The descriptor you want to write to.
     /// - Parameter value: The data being written to the descriptor.
     /// - Parameter completion: A closures containing an error if something went wrong.
-    public func writeDescriptorValue(descriptor: CBDescriptor,
-                                     value: NSData,
-                                     completion: WriteRequestCallback)
+    public func writeDescriptorValue(_ descriptor: CBDescriptor,
+                                     value: Data,
+                                     completion: @escaping WriteRequestCallback)
     {
-        self.writeDescriptorValue(descriptorUUID: descriptor.UUID,
-                                  characteristicUUID: descriptor.characteristic.UUID,
-                                  serviceUUID: descriptor.characteristic.service.UUID,
+        self.writeDescriptorValue(descriptorUUID: descriptor.uuid,
+                                  characteristicUUID: descriptor.characteristic.uuid,
+                                  serviceUUID: descriptor.characteristic.service.uuid,
                                   value: value,
                                   completion: completion)
     }
@@ -344,10 +364,10 @@ extension Peripheral {
     /// - Parameter characteristicUUID: The UUID of the characteristic you want set the notify value of.
     /// - Parameter serviceUUID: The UUID of the service of the characteristic above.
     /// - Parameter completion: A closures containing the updated notification value of the characteristic or an error if something went wrong.
-    public func setNotifyValueForCharacteristic(enabled: Bool,
+    public func setNotifyValueForCharacteristic(_ enabled: Bool,
                                                 characteristicUUID: CBUUIDConvertible,
                                                 serviceUUID: CBUUIDConvertible,
-                                                completion: UpdateNotificationStateCallback)
+                                                completion: @escaping UpdateNotificationStateCallback)
     {
         self.peripheralProxy.setNotifyValueForCharacteristic(enabled,
                                                              characteristicUUID: characteristicUUID.CBUUIDRepresentation,
@@ -362,9 +382,9 @@ extension Peripheral {
     /// - Parameter enabled: The notify state of the charac, set enabled to true to receive change notifications through the default NSNotification center
     /// - Parameter characteristic: The characteristic you want set the notify value of.
     /// - Parameter completion: A closures containing the updated notification value of the characteristic or an error if something went wrong.
-    public func setNotifyValueForCharacteristic(enabled: Bool,
+    public func setNotifyValueForCharacteristic(_ enabled: Bool,
                                                 characteristic: CBCharacteristic,
-                                                completion: UpdateNotificationStateCallback)
+                                                completion: @escaping UpdateNotificationStateCallback)
     {
         self.setNotifyValueForCharacteristic(enabled,
                                              characteristicUUID: characteristic,

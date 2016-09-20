@@ -30,9 +30,9 @@ import CoreBluetooth
 /// - Parameter timeout: The scanning time in seconds before the scan is stopped and the completion closure is called with a scanStopped result.
 /// - Parameter serviceUUIDs: The service UUIDs to search peripherals for or nil if looking for all peripherals.
 /// - Parameter completion: The closures, called multiple times throughout a scan.
-public func scanWithTimeout(timeout: NSTimeInterval,
+public func scanWithTimeout(_ timeout: TimeInterval,
                             serviceUUIDs: [CBUUIDConvertible]?,
-                            completion: PeripheralScanCallback)
+                            completion: @escaping PeripheralScanCallback)
 {
     Central.sharedInstance.scanWithTimeout(timeout, serviceUUIDs: serviceUUIDs, completion: completion)
 }
@@ -46,7 +46,7 @@ public func stopScan() {
 /// Sometimes, the bluetooth state of your iOS Device/CBCentralManagerState is in an inbetween state of either
 /// ".Unknown" or ".Reseting". This function will wait until the bluetooth state is stable and return a subset
 /// of the CBCentralManager state value which does not includes these values in its completion closure.
-public func asyncCentralState(completion: AsyncCentralStateCallback) {
+public func asyncCentralState(_ completion: @escaping AsyncCentralStateCallback) {
     Central.sharedInstance.asyncCentralState(completion)
 }
 
