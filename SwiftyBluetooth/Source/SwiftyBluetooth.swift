@@ -51,7 +51,7 @@ public func asyncCentralState(completion: AsyncCentralStateCallback) {
 }
 
 /// The Central singleton underlying CBCentralManager state
-public var state: CBCentralManagerState {
+public var state: Int {
     get {
         return Central.sharedInstance.state
     }

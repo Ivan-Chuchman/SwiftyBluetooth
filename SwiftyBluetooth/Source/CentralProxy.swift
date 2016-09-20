@@ -292,22 +292,24 @@ extension CentralProxy {
 extension CentralProxy: CBCentralManagerDelegate {
     @objc func centralManagerDidUpdateState(central: CBCentralManager) {
         self.postCentralEvent(.CentralStateChange, userInfo: ["state": Box(value: central.state)])
-        switch centralManager.state {
-            case .Unknown:
-                self.stopScan(Error.ScanTerminatedUnexpectedly(invalidState: centralManager.state))
-            case .Resetting:
-                self.stopScan(Error.ScanTerminatedUnexpectedly(invalidState: centralManager.state))
-            case .Unsupported:
+        switch centralManager.state.rawValue {
+            case 0: //.Unknown:
+                self.stopScan(Error.ScanTerminatedUnexpectedly(invalidState: centralManager.state.rawValue))
+            case 1: //.Resetting:
+                self.stopScan(Error.ScanTerminatedUnexpectedly(invalidState: centralManager.state.rawValue))
+            case 2: //.Unsupported:
                 self.callAsyncCentralStateCallback(.Unsupported)
-                self.stopScan(Error.ScanTerminatedUnexpectedly(invalidState: centralManager.state))
-            case .Unauthorized:
+                self.stopScan(Error.ScanTerminatedUnexpectedly(invalidState: centralManager.state.rawValue))
+            case 3: //.Unauthorized:
                 self.callAsyncCentralStateCallback(.Unauthorized)
-                self.stopScan(Error.ScanTerminatedUnexpectedly(invalidState: centralManager.state))
-            case .PoweredOff:
+                self.stopScan(Error.ScanTerminatedUnexpectedly(invalidState: centralManager.state.rawValue))
+            case 4: //.PoweredOff:
                 self.callAsyncCentralStateCallback(.PoweredOff)
-                self.stopScan(Error.ScanTerminatedUnexpectedly(invalidState: centralManager.state))
-            case .PoweredOn:
+                self.stopScan(Error.ScanTerminatedUnexpectedly(invalidState: centralManager.state.rawValue))
+            case 5: //.PoweredOn:
                 self.callAsyncCentralStateCallback(.PoweredOn)
+            default:
+                break
         }
     }
     

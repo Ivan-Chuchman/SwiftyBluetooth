@@ -112,10 +112,10 @@ extension Central {
 
 // MARK: Public
 extension Central {
-    /// The underlying CBCentralManager state
-    public var state: CBCentralManagerState {
+    /// The underlying CBCentralManager (CBManager for iOS 10) state
+    public var state: Int {
         get {
-            return self.centralProxy.centralManager.state
+            return self.centralProxy.centralManager.state.rawValue
         }
     }
     

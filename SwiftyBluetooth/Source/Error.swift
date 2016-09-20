@@ -34,7 +34,7 @@ public enum Error: ErrorType {
     case PeripheralServiceNotFound(missingServicesUUIDs: [CBUUID])
     case PeripheralCharacteristicNotFound(missingCharacteristicsUUIDs: [CBUUID])
     case PeripheralDescriptorsNotFound(missingDescriptorsUUIDs: [CBUUID])
-    case ScanTerminatedUnexpectedly(invalidState: CBCentralManagerState)
+    case ScanTerminatedUnexpectedly(invalidState: Int) // CBCentralManagerState.rawValue (CBManagerState.rawValue for iOS 10)
     case InvalidDescriptorValue(descriptor: CBDescriptor)
     
     public var _domain: String {
