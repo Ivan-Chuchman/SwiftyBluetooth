@@ -291,7 +291,7 @@ extension CentralProxy {
 
 extension CentralProxy: CBCentralManagerDelegate {
     @objc func centralManagerDidUpdateState(_ central: CBCentralManager) {
-        self.postCentralEvent(.CentralStateChange, userInfo: ["state": Box(value: central.state)])
+        self.postCentralEvent(.CentralStateChange, userInfo: ["state": Box(value: central.state.rawValue)])
         switch centralManager.state.rawValue {
             case 0: //.Unknown:
                 self.stopScan(SBError.scanTerminatedUnexpectedly(invalidState: centralManager.state.rawValue))

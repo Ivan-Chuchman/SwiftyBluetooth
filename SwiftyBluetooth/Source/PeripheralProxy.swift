@@ -56,8 +56,11 @@ final class PeripheralProxy: NSObject  {
                                                                 object: Central.sharedInstance,
                                                                 queue: nil)
         { [weak self] (notification) in
-            let boxedState = (notification as NSNotification).userInfo!["state"] as! Box<CBCentralManagerState>
-            if boxedState.value.rawValue < CBCentralManagerState.poweredOff.rawValue {
+            // Box<Int> was Box<CBCentralManagerState> previously. This is fix for crash:
+            // "Could not cast value of type 'SwiftyBluetooth.Box<__C.CBManagerState>' to 'SwiftyBluetooth.Box<__C.CBCentralManagerState>'."
+            // See "Migration to Swift 2.3" commit. That commit and this change can be reverted when deployment target will be iOS 10 (Will need to change CBCentralManagerState to CBManagerState everywhere only).
+            let boxedState = (notification as NSNotification).userInfo!["state"] as! Box<Int>
+            if boxedState.value < CBCentralManagerState.poweredOff.rawValue {
                 self?.valid = false
             }
         }
